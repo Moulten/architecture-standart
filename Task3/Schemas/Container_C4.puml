@@ -1,0 +1,23 @@
+@startuml
+
+top to bottom direction
+
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+Person(user, "User", a user of cinema service)
+
+System(system, "Cinema Abyss System")
+System_Ext(payment, "Payment Service", "External payment service")
+System_Ext(extDevices, "Recomendation system", "External recomendation system")
+System_Ext(extCinemaServices, "Exteranl cinema services", "External partner cinema services")
+
+Container_Boundary(system, "Cinema Abyss System") {
+    Container(api, "API Gateway", "Kong", "Handle requests from users from different devices types")
+    Container(contentSystem, "Content system", "Go, PostgreSQL", "Provide access to movies library and collections")
+    Container(movieInfoSystem, "Movie info system" "Go, MongoDB, S3", "Provide information about movie including pictures, reviewes and etc")
+    Container(userSystem, "User System", "Go, PostreSQL", "Manage user profiles, subscriptions and discounts")
+    Container(playbackSystem, "Playback System", "Go", "Proxy for streaming movies from partner cinemas to user")
+}
+
+Rel(api, contentSystem, "Uses")
+
