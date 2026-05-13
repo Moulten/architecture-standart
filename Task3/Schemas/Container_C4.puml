@@ -4,20 +4,43 @@ top to bottom direction
 
 !include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
 
-Person(user, "User", a user of cinema service)
+Person(user, "User", "A user of Standard bank service")
+Person(backOfficeStaff, "Back Office Staff", "Worker in a back office")
+Person(frontOfficeStaff, "Front Office Staff", "Worker in a front office")
+Person(callCenterStaff, "Call Center Staff", "Worker in a call center")
 
-System(system, "Cinema Abyss System")
-System_Ext(payment, "Payment Service", "External payment service")
-System_Ext(extDevices, "Recomendation system", "External recomendation system")
-System_Ext(extCinemaServices, "Exteranl cinema services", "External partner cinema services")
+System(standartBankSystem, "Standart Bank System")
+System_Ext(callCenterSystem, "Call center system", "External call center system")
+System_Ext(telecom, "Telekom operator", "External telecom operator")
 
-Container_Boundary(system, "Cinema Abyss System") {
-    Container(api, "API Gateway", "Kong", "Handle requests from users from different devices types")
-    Container(contentSystem, "Content system", "Go, PostgreSQL", "Provide access to movies library and collections")
-    Container(movieInfoSystem, "Movie info system" "Go, MongoDB, S3", "Provide information about movie including pictures, reviewes and etc")
-    Container(userSystem, "User System", "Go, PostreSQL", "Manage user profiles, subscriptions and discounts")
-    Container(playbackSystem, "Playback System", "Go", "Proxy for streaming movies from partner cinemas to user")
+Container_Boundary(standartBankSystem, "Standart Bank System") {
+    Container(api, "Users API", "Kong", "API Gateway for the bank clients")
+    Container(apiBack, "Back office API", "Kong", "API Gateway for back office workers")
+    Container(apiFront, "Front office API", "Kong", "API Gateway for front office workers")
+    Container(apiCallCenter, "Call Center API", "Kong", "API Gateway for call center workers")
+
+    Container(onlineBanking, "ABC banking system", "ASP.NET MVC 4.5, MS SQL", "Support debit card operations")
+    Container(bankingSystem, "ABC banking system", "Oracle", "A core system of the bank")
+    Container(callCenterCrm, "Call Center CRM", "Java Spring Boot, PostgreSQL", "CRM sysytem for call centers")
+    Container(operatorGateway, "Operator Gateway", "Java Spring Boot, PostgreSQL", "CRM sysytem for call centers")
 }
 
-Rel(api, contentSystem, "Uses")
+Rel(user, api, HTTP)
+Rel(backOfficeStaff, apiBack, HTTP)
+Rel(frontOfficeStaff, apiFront, HTTP)
+Rel(callCenterStaff, apiCallCenter, HTTP)
+
+Rel(api, onlineBanking, call)
+Rel(apiBack, bankingSystem, call)
+Rel(apiFront, onlineBanking, call)
+Rel(apiCallCenter, callCenterCrm, call)
+Rel(apiCallCenter, callCenterSystem, HTTP)
+
+Rel(onlineBanking, bankingSystem, HTTP)
+Rel(onlineBanking, callCenterCrm, HTTP)
+Rel(onlineBanking, operatorGateway, HTTP)
+Rel(operatorGateway, onlineBanking, HTTP)
+
+Rel(operatorGateway, telecom, "HTTP")
+Rel(telecom, operatorGateway, "HTTP")
 
