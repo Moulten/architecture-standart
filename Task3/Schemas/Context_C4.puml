@@ -1,0 +1,29 @@
+@startuml
+
+top to bottom direction
+
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+Person(newClient, "New Client", "A new bank customer applying for a deposit via website")
+Person(existingClient, "Existing Client", "An existing bank customer opening a deposit via internet bank")
+Person(backOfficeStaff, "Back Office Staff", "Deposit back office worker processing applications in CBS")
+Person(frontOfficeStaff, "Front Office Staff", "Branch worker opening deposits for new clients in person")
+Person(callCenterStaff, "Call Center Operator", "Bank call center operator consulting clients on deposit conditions")
+
+System(standartBankSystem, "Standart Bank System", "Provides online and offline banking services including deposit products")
+
+System_Ext(partnerCallCenterSystem, "Partner Call Center System", "External partner call center handling overflow client calls")
+System_Ext(telecom, "Telecom Operator", "External operator delivering SMS notifications to clients")
+
+Rel(newClient, standartBankSystem, "Submits deposit application via website")
+Rel(existingClient, standartBankSystem, "Opens deposit via internet bank, confirms via SMS OTP")
+Rel(backOfficeStaff, standartBankSystem, "Processes deposit applications, confirms rates in CBS")
+Rel(frontOfficeStaff, standartBankSystem, "Verifies client identity and opens deposit in branch")
+Rel(callCenterStaff, standartBankSystem, "Handles client calls, consults on deposit rates")
+
+Rel(standartBankSystem, telecom, "Sends SMS notifications", "HTTPS")
+Rel(telecom, newClient, "Delivers SMS", "SMS")
+Rel(telecom, existingClient, "Delivers SMS: rate confirmed, deposit opened", "SMS")
+Rel(standartBankSystem, partnerCallCenterSystem, "Transfers client inquiries and deposit rates", "HTTPS")
+
+@enduml
