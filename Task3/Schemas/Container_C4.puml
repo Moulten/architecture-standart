@@ -10,7 +10,7 @@ Person(frontOfficeStaff, "Front Office Staff", "Worker in a front office")
 Person(callCenterStaff, "Call Center Staff", "Worker in a call center")
 
 System(standartBankSystem, "Standart Bank System")
-System_Ext(callCenterSystem, "Call center system", "External call center system")
+System_Ext(partnerCallCenterSystem, "Partner Call Center System", "External partner call center system")
 System_Ext(telecom, "Telekom operator", "External telecom operator")
 
 Container_Boundary(standartBankSystem, "Standart Bank System") {
@@ -19,28 +19,34 @@ Container_Boundary(standartBankSystem, "Standart Bank System") {
     Container(apiFront, "Front office API", "Kong", "API Gateway for front office workers")
     Container(apiCallCenter, "Call Center API", "Kong", "API Gateway for call center workers")
 
-    Container(onlineBanking, "ABC banking system", "ASP.NET MVC 4.5, MS SQL", "Support debit card operations")
-    Container(bankingSystem, "ABC banking system", "Oracle", "A core system of the bank")
-    Container(callCenterCrm, "Call Center CRM", "Java Spring Boot, PostgreSQL", "CRM sysytem for call centers")
-    Container(operatorGateway, "Operator Gateway", "Java Spring Boot, PostgreSQL", "CRM sysytem for call centers")
+    Container(website, "Website", "PHP, React.js", "Marketing site, deposit application form for new clients")
+    Container(onlineBanking, "Internet Bank", "ASP.NET MVC 4.5, MS SQL", "Online banking: payments, account management, deposit applications")
+    Container(kafka, "Message Broker", "Kafka", "Async message bus between Internet Bank and CBS")
+    Container(bankingSystem, "CBS (ABS)", "Oracle, PL-SQL, Delphi", "Core banking system: accounts, deposits, rates management")
+    Container(callCenterCrm, "Call Center System", "React.js, Java Spring Boot, PostgreSQL", "Internal call center system for handling client requests")
+    Container(smsGateway, "SMS Gateway", "Telecom API", "Sends SMS notifications to clients via telecom operator")
 }
 
-Rel(user, api, HTTP)
-Rel(backOfficeStaff, apiBack, HTTP)
-Rel(frontOfficeStaff, apiFront, HTTP)
-Rel(callCenterStaff, apiCallCenter, HTTP)
+Rel(user, api, "HTTPS")
+Rel(backOfficeStaff, apiBack, "HTTPS")
+Rel(frontOfficeStaff, apiFront, "HTTPS")
+Rel(callCenterStaff, apiCallCenter, "HTTPS")
 
-Rel(api, onlineBanking, call)
-Rel(apiBack, bankingSystem, call)
-Rel(apiFront, onlineBanking, call)
-Rel(apiCallCenter, callCenterCrm, call)
-Rel(apiCallCenter, callCenterSystem, HTTP)
+Rel(api, website, "call")
+Rel(api, onlineBanking, "call")
+Rel(apiBack, bankingSystem, "call")
+Rel(apiFront, bankingSystem, "call")
+Rel(apiCallCenter, callCenterCrm, "call")
+Rel(apiCallCenter, partnerCallCenterSystem, "HTTPS")
 
-Rel(onlineBanking, bankingSystem, HTTP)
-Rel(onlineBanking, callCenterCrm, HTTP)
-Rel(onlineBanking, operatorGateway, HTTP)
-Rel(operatorGateway, onlineBanking, HTTP)
+Rel(website, callCenterCrm, "HTTPS", "Sends new deposit applications")
+Rel(onlineBanking, kafka, "publish", "Deposit application event")
+Rel(kafka, bankingSystem, "consume", "Deposit application event")
 
-Rel(operatorGateway, telecom, "HTTP")
-Rel(telecom, operatorGateway, "HTTP")
+Rel(callCenterCrm, bankingSystem, "HTTPS", "Transfers client inquiries")
 
+Rel(bankingSystem, smsGateway, "HTTPS", "SMS notifications")
+Rel(smsGateway, telecom, "HTTPS", "Sends SMS")
+Rel(telecom, user, "SMS", "Delivers SMS to client")
+
+@enduml
