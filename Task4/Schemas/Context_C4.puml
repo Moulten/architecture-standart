@@ -1,0 +1,20 @@
+@startuml
+
+top to bottom direction
+
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+Person(backOfficeStaff, "Back Office Staff", "Updates deposit rates in CBS Rates Module")
+Person(ccOperator, "Call Center Operator", "Consults clients on deposit conditions and rates")
+Person(partnerCcOperator, "Partner CC Operator", "Consults clients on deposit conditions using rates from SFTP file")
+
+System(standartBankSystem, "Standart Bank System", "Stores deposit rates in CBS and distributes them to internal and partner call centers")
+
+System_Ext(partnerCallCenterSystem, "Partner Call Center System", "External partner call center. Receives deposit rates as files via SFTP. Cannot use API calls.")
+
+Rel(backOfficeStaff, standartBankSystem, "Updates deposit rates")
+Rel(ccOperator, standartBankSystem, "Views current deposit rates in Call Center System")
+Rel(standartBankSystem, partnerCallCenterSystem, "Delivers rate files", "SFTP")
+Rel(partnerCcOperator, partnerCallCenterSystem, "Views rates from downloaded file")
+
+@enduml

@@ -1,0 +1,46 @@
+@startuml
+
+top to bottom direction
+
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+Person(ccOperator, "Call Center Operator", "Views current deposit rates in CC system")
+Person(partnerCcOperator, "Partner CC Operator", "Views rates from SFTP file")
+
+Container_Ext(cbsRatesModule, "CBS Rates Module", "PL-SQL, Oracle", "Stores and manages current deposit rates. Updated daily by back office staff.")
+Container_Ext(callCenterSystem, "Call Center System", "React.js, Java Spring Boot, PostgreSQL", "Internal bank call center platform")
+System_Ext(sftpServer, "SFTP Server", "Stores rate files for the partner call center. Write access — Rate Distribution Service only. Read access — partner CC only.")
+System_Ext(partnerCallCenterSystem, "Partner Call Center System", "External partner call center. Downloads rate files from SFTP server.")
+
+Container_Boundary(rds, "Rate Distribution Service (.NET)") {
+    Component(scheduler, "Scheduler", "Cron Job", "Triggers rate fetching and file export on a fixed schedule (e.g. every 15 min for CC system, daily for SFTP)")
+    Component(rateFetcher, "Rate Fetcher", ".NET", "Fetches current deposit rates from CBS Rates Module API")
+    Component(rateApi, "Rate API", ".NET, REST", "Exposes current deposit rates to the Call Center System via REST API")
+    Component(sftpExporter, "SFTP Exporter", ".NET", "Generates a rate file (CSV) and uploads it to the SFTP server")
+    Component(operationLogger, "Operation Logger", ".NET", "Logs all distribution operations (success / failure) for audit and monitoring")
+}
+
+' Scheduler triggers internals
+Rel(scheduler, rateFetcher, "triggers on schedule")
+Rel(scheduler, sftpExporter, "triggers daily export")
+
+' Rate Fetcher
+Rel(rateFetcher, cbsRatesModule, "fetches rates", "HTTPS")
+Rel(rateFetcher, rateApi, "updates in-memory rate cache")
+Rel(rateFetcher, operationLogger, "logs fetch result")
+
+' Rate API — serves CC system
+Rel(callCenterSystem, rateApi, "polls for current rates", "REST / HTTPS")
+Rel(rateApi, operationLogger, "logs API calls")
+
+' SFTP Exporter
+Rel(sftpExporter, cbsRatesModule, "fetches rates for export", "HTTPS")
+Rel(sftpExporter, sftpServer, "uploads rate file", "SFTP")
+Rel(sftpExporter, operationLogger, "logs export result")
+
+' Actors
+Rel(ccOperator, callCenterSystem, "views deposit rates")
+Rel(partnerCcOperator, partnerCallCenterSystem, "views rates from downloaded file")
+Rel(partnerCallCenterSystem, sftpServer, "downloads rate file", "SFTP")
+
+@enduml

@@ -1,0 +1,82 @@
+@startuml
+
+top to bottom direction
+
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+Person(user, "User", "A user of Standard bank service")
+Person(backOfficeStaff, "Back Office Staff", "Worker in a back office")
+Person(frontOfficeStaff, "Front Office Staff", "Worker in a front office")
+Person(callCenterStaff, "Call Center Staff", "Worker in a call center")
+
+System_Ext(partnerCallCenterSystem, "Partner Call Center System", "External partner call center system")
+System_Ext(telecom, "Telecom operator", "External telecom operator")
+
+Container_Boundary(standartBankSystem, "Standart Bank System") {
+
+    Container(api, "Users API", "Kong", "API Gateway for the bank clients")
+    Container(apiBack, "Back office API", "Kong", "API Gateway for back office workers")
+    Container(apiFront, "Front office API", "Kong", "API Gateway for front office workers")
+    Container(apiCallCenter, "Call Center API", "Kong", "API Gateway for call center workers")
+
+    Container(website, "Website", "PHP, React.js", "Marketing site and deposit application form for new clients")
+
+    Container_Boundary(internetBankBoundary, "Internet Bank") {
+        Container(webUI, "Web UI", "ASP.NET MVC 4.5, Razor", "Client-facing web interface for banking operations")
+        Container(depositService, "Deposit Application Service", ".NET", "Handles deposit application logic and publishes events to Kafka")
+        ContainerDb(ibDatabase, "Internet Bank DB", "MS SQL", "Stores sessions, application state and transaction data")
+    }
+
+    Container(kafka, "Message Broker", "Kafka", "Async message bus decoupling Internet Bank from CBS")
+
+    Container_Boundary(cbsBoundary, "CBS (ABS)") {
+        Container(delphiClient, "Desktop Client", "Delphi", "Used by branch and back office staff to work with CBS")
+        Container(ratesModule, "Rates Module", "PL-SQL, Oracle", "Manages deposit rates, replaces Excel-based process")
+        Container(depositProcessing, "Deposit Processing Module", "PL-SQL, Oracle", "Consumes deposit application events from Kafka, processes and opens deposits")
+        ContainerDb(oracleDb, "Core Banking DB", "Oracle", "Core data: accounts, deposits, transactions, contracts, client profiles")
+    }
+
+    Container(callCenterSystem, "Call Center System", "React.js, Java Spring Boot, PostgreSQL", "Internal call center system for handling client requests and deposit inquiries")
+    Container(smsGateway, "SMS Gateway", "Telecom API", "Sends SMS notifications to clients via telecom operator")
+
+}
+
+' Users to API Gateways
+Rel(user, api, "HTTPS")
+Rel(backOfficeStaff, apiBack, "HTTPS")
+Rel(frontOfficeStaff, apiFront, "HTTPS")
+Rel(callCenterStaff, apiCallCenter, "HTTPS")
+
+' API Gateway routing
+Rel(api, website, "routes")
+Rel(api, webUI, "routes")
+Rel(apiBack, depositProcessing, "routes", "View and confirm deposit applications")
+Rel(apiFront, delphiClient, "routes", "Branch deposit opening")
+Rel(apiCallCenter, callCenterSystem, "routes")
+Rel(apiCallCenter, partnerCallCenterSystem, "HTTPS")
+
+' Internet Bank internals
+Rel(webUI, depositService, "calls")
+Rel(depositService, ibDatabase, "read/write", "JDBC")
+Rel(depositService, kafka, "publish", "Deposit application event")
+
+' Kafka to CBS
+Rel(kafka, depositProcessing, "consume", "Deposit application event")
+
+' CBS internals
+Rel(depositProcessing, oracleDb, "read/write", "PL-SQL")
+Rel(ratesModule, oracleDb, "read/write", "PL-SQL")
+Rel(delphiClient, oracleDb, "read/write", "PL-SQL")
+
+' Website to Call Center System
+Rel(website, callCenterSystem, "HTTPS", "Sends new client deposit applications")
+
+' Call Center to CBS rates
+Rel(callCenterSystem, ratesModule, "HTTPS", "Fetches current deposit rates")
+
+' SMS flow
+Rel(depositProcessing, smsGateway, "HTTPS", "Triggers SMS: rate confirmed / deposit opened")
+Rel(smsGateway, telecom, "HTTPS", "Sends SMS")
+Rel(telecom, user, "SMS", "Delivers SMS to client")
+
+@enduml
